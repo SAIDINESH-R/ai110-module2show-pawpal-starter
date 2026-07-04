@@ -4,6 +4,17 @@ from pawpal_system import Owner, Pet, Task, Scheduler, Priority
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 st.title("🐾 PawPal+")
 
+CATEGORY_ICONS = {
+    "exercise":   "🚶",
+    "nutrition":  "🍽️",
+    "health":     "💊",
+    "grooming":   "✂️",
+    "hygiene":    "🧹",
+    "enrichment": "🎮",
+}
+
+PRIORITY_BADGE = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
+
 # ── session state bootstrap ───────────────────────────────────────────────────
 if "owner" not in st.session_state:
     st.session_state.owner = None
@@ -66,9 +77,13 @@ with st.form("task_form"):
     task_name       = st.text_input("Task name", value="Morning Walk")
     duration        = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=30)
     priority        = st.selectbox("Priority", ["HIGH", "MEDIUM", "LOW"])
-    category        = st.text_input("Category", value="exercise")
-    notes           = st.text_input("Notes (optional)", value="")
-    task_time       = st.text_input("Preferred start time (HH:MM)", value="08:00")
+    category        = st.selectbox(
+        "Category",
+        ["exercise", "nutrition", "health", "grooming", "hygiene", "enrichment", "other"],
+        format_func=lambda c: f"{CATEGORY_ICONS.get(c, '📋')} {c}",
+    )
+    notes     = st.text_input("Notes (optional)", value="")
+    task_time = st.text_input("Preferred start time (HH:MM)", value="08:00")
 
     if st.form_submit_button("Add Task"):
         target_pet = next(p for p in owner.pets if p.name == target_pet_name)
@@ -83,14 +98,43 @@ with st.form("task_form"):
         scheduler.add_task(new_task, target_pet)
         st.success(f"Task '{task_name}' added to {target_pet_name}.")
 
+# ── Summary metrics ───────────────────────────────────────────────────────────
+all_tasks = scheduler._all_tasks()
+total_pending_minutes = sum(t.duration_minutes for t in all_tasks if not t.completed)
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Pets", len(owner.pets))
+col2.metric("Tasks", len(all_tasks))
+col3.metric("Total task time", f"{total_pending_minutes} min")
+
+# ── Time usage progress bar ───────────────────────────────────────────────────
+if all_tasks:
+    used_fraction = min(total_pending_minutes / owner.available_minutes, 1.0)
+    pct = int(used_fraction * 100)
+    bar_color = "#e74c3c" if used_fraction >= 1.0 else "#f39c12" if used_fraction >= 0.75 else "#2ecc71"
+    st.markdown(
+        f"**Time budget:** {total_pending_minutes} / {owner.available_minutes} min used ({pct}%)"
+    )
+    st.markdown(
+        f"""
+        <div style="background:#e0e0e0;border-radius:8px;height:16px;width:100%;margin-bottom:8px">
+          <div style="background:{bar_color};width:{pct}%;height:16px;border-radius:8px;
+                      transition:width 0.4s ease"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # ── Current task summary ──────────────────────────────────────────────────────
 for pet in owner.pets:
     if pet.tasks:
         with st.expander(f"{pet.name}'s tasks ({len(pet.tasks)})"):
             for t in pet.tasks:
+                icon = CATEGORY_ICONS.get(t.category, "📋")
+                badge = PRIORITY_BADGE.get(t.priority.value.upper(), "")
                 st.write(
-                    f"**{t.name}** — {t.duration_minutes} min "
-                    f"[{t.priority.value.upper()}] @ {t.time}"
+                    f"{icon} **{t.name}** — {t.duration_minutes} min "
+                    f"{badge} `{t.priority.value.upper()}` @ {t.time}"
                     + (f" | {t.notes}" if t.notes else "")
                 )
 
@@ -98,33 +142,38 @@ for pet in owner.pets:
 st.header("4. Generate Schedule")
 
 if st.button("Generate Schedule"):
-    all_tasks = scheduler._all_tasks()
     if not all_tasks:
         st.warning("No tasks added yet. Add some above.")
     else:
         if scheduler.is_overbooked():
-            total = sum(t.duration_minutes for t in all_tasks if not t.completed)
             st.warning(
-                f"⚠️ {total} min of tasks but only {owner.available_minutes} min available "
+                f"⚠️ {total_pending_minutes} min of tasks but only {owner.available_minutes} min available "
                 "— lowest-priority tasks will be skipped."
             )
 
         plan = scheduler.generate_plan()
+        scheduled_minutes = sum(t.duration_minutes for _, t in plan)
+
+        # ── Schedule metrics ──────────────────────────────────────────────────
+        s1, s2, s3 = st.columns(3)
+        s1.metric("Scheduled tasks", len(plan))
+        s2.metric("Scheduled time", f"{scheduled_minutes} min")
+        s3.metric("Time remaining", f"{owner.available_minutes - scheduled_minutes} min")
 
         conflicts = scheduler.conflicts(plan)
         for warning in conflicts:
             st.error(warning)
 
         st.subheader(f"Daily Plan — {owner.name}'s Pets")
-        priority_badge = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
         if plan:
             for slot, task in plan:
-                badge = priority_badge.get(task.priority.value.upper(), "")
+                icon = CATEGORY_ICONS.get(task.category, "📋")
+                badge = PRIORITY_BADGE.get(task.priority.value.upper(), "")
                 pet_label = next(
                     (p.name for p in owner.pets if task in p.tasks), "?"
                 )
                 st.markdown(
-                    f"**{slot}** — [{pet_label}] {task.name} ({task.duration_minutes} min) "
+                    f"**{slot}** — [{pet_label}] {icon} {task.name} ({task.duration_minutes} min) "
                     f"{badge} `{task.priority.value.upper()}`"
                     + (f"\n> {task.notes}" if task.notes else "")
                 )
