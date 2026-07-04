@@ -46,9 +46,11 @@ class Owner:
     pets: list[Pet] = field(default_factory=list)
 
     def add_pet(self, pet: Pet) -> None:
+        """Append a pet to this owner's pet list."""
         self.pets.append(pet)
 
     def all_tasks(self) -> list[Task]:
+        """Return a flat list of every task across all owned pets."""
         return [task for pet in self.pets for task in pet.tasks]
 
 
@@ -58,12 +60,15 @@ class Scheduler:
         self.pet = pet
 
     def add_task(self, task: Task) -> None:
+        """Add a task to the scheduled pet's task list."""
         self.pet.add_task(task)
 
     def remove_task(self, task_name: str) -> None:
+        """Remove a task from the pet's list by name."""
         self.pet.tasks = [t for t in self.pet.tasks if t.name != task_name]
 
     def generate_plan(self) -> list[tuple[str, Task]]:
+        """Sort tasks by priority then time and fit them within the owner's available minutes."""
         sorted_tasks = sorted(
             self.pet.tasks,
             key=lambda t: (t.priority.order, t.time),
@@ -89,6 +94,7 @@ class Scheduler:
         return plan
 
     def explain(self) -> str:
+        """Return a human-readable summary of the generated plan, including any skipped tasks."""
         plan = self.generate_plan()
         if not plan:
             return "No tasks could be scheduled within the available time."
