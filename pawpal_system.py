@@ -68,30 +68,33 @@ class Owner:
 
 
 class Scheduler:
-    def __init__(self, owner: Owner, pet: Pet):
+    def __init__(self, owner: Owner):
         self.owner = owner
-        self.pet = pet
 
-    def add_task(self, task: Task) -> None:
-        """Add a task to the scheduled pet's task list."""
-        self.pet.add_task(task)
+    def _all_tasks(self) -> list[Task]:
+        """Return every task across all of the owner's pets."""
+        return [task for pet in self.owner.pets for task in pet.tasks]
 
-    def remove_task(self, task_name: str) -> None:
-        """Remove a task from the pet's list by name."""
-        self.pet.tasks = [t for t in self.pet.tasks if t.name != task_name]
+    def add_task(self, task: Task, pet: Pet) -> None:
+        """Add a task to a specific pet's task list."""
+        pet.add_task(task)
+
+    def remove_task(self, task_name: str, pet: Pet) -> None:
+        """Remove a task by name from a specific pet's task list."""
+        pet.tasks = [t for t in pet.tasks if t.name != task_name]
 
     def tasks_by_category(self, category: str) -> list[Task]:
-        """Return all tasks for this pet that match the given category."""
-        return [t for t in self.pet.tasks if t.category == category]
+        """Return all tasks across all pets that match the given category."""
+        return [t for t in self._all_tasks() if t.category == category]
 
     def is_overbooked(self) -> bool:
-        """Return True if total pending task time exceeds the owner's available minutes."""
-        total = sum(t.duration_minutes for t in self.pet.tasks if not t.completed)
+        """Return True if total pending task time across all pets exceeds available minutes."""
+        total = sum(t.duration_minutes for t in self._all_tasks() if not t.completed)
         return total > self.owner.available_minutes
 
     def generate_plan(self, today: date | None = None) -> list[tuple[str, Task]]:
-        """Sort due tasks by priority, time, and duration; fit within available minutes."""
-        pending = [t for t in self.pet.tasks if t.is_due_today(today)]
+        """Sort due tasks across all pets by priority, time, and duration; fit within available minutes."""
+        pending = [t for t in self._all_tasks() if t.is_due_today(today)]
         sorted_tasks = sorted(
             pending,
             key=lambda t: (t.priority.order, Time.fromisoformat(t.time), t.duration_minutes),
@@ -133,34 +136,36 @@ class Scheduler:
         return warnings
 
     def explain(self, today: date | None = None) -> str:
-        """Return a human-readable summary of the generated plan, including any skipped tasks."""
+        """Return a human-readable summary of the combined plan across all pets."""
         plan = self.generate_plan(today)
         if not plan:
             return "No tasks could be scheduled within the available time."
 
+        pet_names = ", ".join(p.name for p in self.owner.pets)
         lines = [
-            f"Daily plan for {self.pet.name} ({self.pet.breed}):",
-            f"  Owner: {self.owner.name} | Available: {self.owner.available_minutes} min\n",
+            f"Daily plan for {self.owner.name}'s pets ({pet_names}):",
+            f"  Available: {self.owner.available_minutes} min\n",
         ]
 
         total_minutes = 0
+        scheduled_ids = {id(task) for _, task in plan}
         for slot, task in plan:
             priority_label = task.priority.value.upper()
+            pet_label = next(
+                (p.name for p in self.owner.pets if task in p.tasks), "?"
+            )
             lines.append(
-                f"  {slot} — {task.name} ({task.duration_minutes} min)"
+                f"  {slot} — [{pet_label}] {task.name} ({task.duration_minutes} min)"
                 f" [{priority_label}]"
                 + (f" — {task.notes}" if task.notes else "")
             )
             total_minutes += task.duration_minutes
 
-        skipped = [
-            t for t in self.pet.tasks
-            if not any(t is task for _, task in plan)
-        ]
+        skipped = [t for t in self._all_tasks() if id(t) not in scheduled_ids]
 
         lines.append(f"\n  Total scheduled: {total_minutes} min")
         if skipped:
             skipped_names = ", ".join(t.name for t in skipped)
-            lines.append(f"  Skipped (time ran out): {skipped_names}")
+            lines.append(f"  Skipped (time ran out or not due): {skipped_names}")
 
         return "\n".join(lines)

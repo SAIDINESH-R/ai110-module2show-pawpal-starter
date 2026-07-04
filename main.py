@@ -8,88 +8,81 @@ whiskers = Pet(name="Whiskers", species="cat", breed="Siamese", age_years=5.0)
 owner.add_pet(biscuit)
 owner.add_pet(whiskers)
 
-# --- Biscuit's tasks ---
-biscuit_scheduler = Scheduler(owner=owner, pet=biscuit)
+scheduler = Scheduler(owner=owner)
 
-biscuit_scheduler.add_task(Task(
+# --- Biscuit's tasks ---
+scheduler.add_task(Task(
     name="Morning Walk",
     duration_minutes=30,
     priority=Priority.HIGH,
     category="exercise",
     time="08:00",
     notes="go to the park",
-))
-biscuit_scheduler.add_task(Task(
+), biscuit)
+scheduler.add_task(Task(
     name="Feeding",
     duration_minutes=10,
     priority=Priority.HIGH,
     category="nutrition",
     time="08:30",
-))
-biscuit_scheduler.add_task(Task(
+), biscuit)
+scheduler.add_task(Task(
     name="Flea Medicine",
     duration_minutes=5,
     priority=Priority.MEDIUM,
     category="health",
     time="09:00",
     notes="apply between shoulder blades",
-))
-biscuit_scheduler.add_task(Task(
+), biscuit)
+scheduler.add_task(Task(
     name="Grooming",
     duration_minutes=40,
     priority=Priority.LOW,
     category="grooming",
     time="09:30",
-))
+), biscuit)
 
 # --- Whiskers's tasks ---
-whiskers_scheduler = Scheduler(owner=owner, pet=whiskers)
-
-whiskers_scheduler.add_task(Task(
+scheduler.add_task(Task(
     name="Feeding",
     duration_minutes=10,
     priority=Priority.HIGH,
     category="nutrition",
     time="08:00",
-))
-whiskers_scheduler.add_task(Task(
+), whiskers)
+scheduler.add_task(Task(
     name="Litter Box Cleaning",
     duration_minutes=10,
     priority=Priority.MEDIUM,
     category="hygiene",
     time="08:15",
-))
-whiskers_scheduler.add_task(Task(
+), whiskers)
+scheduler.add_task(Task(
     name="Playtime",
     duration_minutes=20,
     priority=Priority.MEDIUM,
     category="enrichment",
     time="09:00",
     notes="use feather wand",
-))
-whiskers_scheduler.add_task(Task(
+), whiskers)
+scheduler.add_task(Task(
     name="Brushing",
     duration_minutes=15,
     priority=Priority.LOW,
     category="grooming",
     time="09:30",
-))
+), whiskers)
 
-# --- Print plans ---
-def print_plan(scheduler) -> None:
-    print("=" * 55)
-    if scheduler.is_overbooked():
-        total = sum(t.duration_minutes for t in scheduler.pet.tasks if not t.completed)
-        print(
-            f"WARNING: {scheduler.pet.name} has {total} min of tasks "
-            f"but only {scheduler.owner.available_minutes} min available — some will be skipped."
-        )
-    plan = scheduler.generate_plan()
-    for warning in scheduler.conflicts(plan):
-        print(warning)
-    print(scheduler.explain())
-
-
-print_plan(biscuit_scheduler)
-print_plan(whiskers_scheduler)
+# --- Print combined plan ---
+print("=" * 55)
+if scheduler.is_overbooked():
+    total = sum(t.duration_minutes for t in scheduler._all_tasks() if not t.completed)
+    print(
+        f"WARNING: {total} min of tasks but only "
+        f"{owner.available_minutes} min available — some will be skipped."
+    )
+plan = scheduler.generate_plan()
+for warning in scheduler.conflicts(plan):
+    print(warning)
+print(scheduler.explain())
 print("=" * 55)
