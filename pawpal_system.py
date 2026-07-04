@@ -123,6 +123,32 @@ class Scheduler:
 
         return plan
 
+    def next_available_slot(self, plan: list[tuple[str, Task]]) -> str:
+        """Return the next HH:MM slot where a new task fits without overlapping any scheduled task."""
+        def to_minutes(slot: str) -> int:
+            h, m = slot.split(":")
+            return int(h) * 60 + int(m)
+
+        def to_slot(minutes: int) -> str:
+            return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+        if not plan:
+            return f"{self.owner.day_start_hour:02d}:00"
+
+        sorted_plan = sorted(plan, key=lambda x: to_minutes(x[0]))
+
+        start = self.owner.day_start_hour * 60
+        if to_minutes(sorted_plan[0][0]) > start:
+            return to_slot(start)
+
+        for i, (slot, task) in enumerate(sorted_plan):
+            end = to_minutes(slot) + task.duration_minutes
+            if i + 1 < len(sorted_plan) and end < to_minutes(sorted_plan[i + 1][0]):
+                return to_slot(end)
+
+        last_slot, last_task = sorted_plan[-1]
+        return to_slot(to_minutes(last_slot) + last_task.duration_minutes)
+
     def conflicts(self, plan: list[tuple[str, Task]]) -> list[str]:
         """Return warning strings for any two scheduled tasks whose time slots overlap."""
         def to_minutes(slot: str) -> int:

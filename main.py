@@ -85,4 +85,6 @@ plan = scheduler.generate_plan()
 for warning in scheduler.conflicts(plan):
     print(warning)
 print(scheduler.explain())
+next_slot = scheduler.next_available_slot(plan)
+print(f"Next available slot: {next_slot}")
 print("=" * 55)
