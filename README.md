@@ -53,6 +53,29 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 #   09:00 — Feeding (10 min) [priority: high]
 #   ...
 ```
+## Sample Output
+
+```
+=======================================================
+Daily plan for Biscuit (Golden Retriever):
+  Owner: Alex | Available: 120 min
+  08:00 — Morning Walk (30 min) [HIGH] — go to the park
+  08:30 — Feeding (10 min) [HIGH]
+  08:40 — Flea Medicine (5 min) [MEDIUM] — apply between shoulder blades
+  08:45 — Grooming (40 min) [LOW]
+  Total scheduled: 85 min
+=======================================================
+Daily plan for Whiskers (Siamese):
+  Owner: Alex | Available: 120 min
+  08:00 — Feeding (10 min) [HIGH]
+  08:10 — Litter Box Cleaning (10 min) [MEDIUM]
+  08:20 — Playtime (20 min) [MEDIUM] — use feather wand
+  08:40 — Brushing (15 min) [LOW]
+  Total scheduled: 55 min
+=======================================================
+```
+
+
 
 ## 🧪 Testing PawPal+
 
