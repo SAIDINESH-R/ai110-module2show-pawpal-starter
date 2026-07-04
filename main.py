@@ -76,8 +76,20 @@ whiskers_scheduler.add_task(Task(
 ))
 
 # --- Print plans ---
-print("=" * 55)
-print(biscuit_scheduler.explain())
-print("=" * 55)
-print(whiskers_scheduler.explain())
+def print_plan(scheduler) -> None:
+    print("=" * 55)
+    if scheduler.is_overbooked():
+        total = sum(t.duration_minutes for t in scheduler.pet.tasks if not t.completed)
+        print(
+            f"WARNING: {scheduler.pet.name} has {total} min of tasks "
+            f"but only {scheduler.owner.available_minutes} min available — some will be skipped."
+        )
+    plan = scheduler.generate_plan()
+    for warning in scheduler.conflicts(plan):
+        print(warning)
+    print(scheduler.explain())
+
+
+print_plan(biscuit_scheduler)
+print_plan(whiskers_scheduler)
 print("=" * 55)

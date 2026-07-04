@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
+from datetime import date, time as Time
 from enum import Enum
 
 
@@ -23,6 +24,18 @@ class Task:
     time: str = "08:00"
     frequency: str = "once"
     completed: bool = False
+    repeat_day: int = -1  # 0=Mon … 6=Sun, -1=not set
+
+    def is_due_today(self, today: date | None = None) -> bool:
+        """Return True if this task should appear in today's schedule."""
+        weekday = (today or date.today()).weekday()
+        if self.frequency == "daily":
+            return True
+        if self.frequency == "once":
+            return not self.completed
+        if self.frequency == "weekly":
+            return self.repeat_day == weekday
+        return False
 
 
 @dataclass
@@ -67,11 +80,21 @@ class Scheduler:
         """Remove a task from the pet's list by name."""
         self.pet.tasks = [t for t in self.pet.tasks if t.name != task_name]
 
-    def generate_plan(self) -> list[tuple[str, Task]]:
-        """Sort tasks by priority then time and fit them within the owner's available minutes."""
+    def tasks_by_category(self, category: str) -> list[Task]:
+        """Return all tasks for this pet that match the given category."""
+        return [t for t in self.pet.tasks if t.category == category]
+
+    def is_overbooked(self) -> bool:
+        """Return True if total pending task time exceeds the owner's available minutes."""
+        total = sum(t.duration_minutes for t in self.pet.tasks if not t.completed)
+        return total > self.owner.available_minutes
+
+    def generate_plan(self, today: date | None = None) -> list[tuple[str, Task]]:
+        """Sort due tasks by priority, time, and duration; fit within available minutes."""
+        pending = [t for t in self.pet.tasks if t.is_due_today(today)]
         sorted_tasks = sorted(
-            self.pet.tasks,
-            key=lambda t: (t.priority.order, t.time),
+            pending,
+            key=lambda t: (t.priority.order, Time.fromisoformat(t.time), t.duration_minutes),
         )
 
         plan: list[tuple[str, Task]] = []
@@ -93,9 +116,25 @@ class Scheduler:
 
         return plan
 
-    def explain(self) -> str:
+    def conflicts(self, plan: list[tuple[str, Task]]) -> list[str]:
+        """Return warning strings for any two scheduled tasks whose time slots overlap."""
+        def to_minutes(slot: str) -> int:
+            h, m = slot.split(":")
+            return int(h) * 60 + int(m)
+
+        warnings = []
+        for i, (slot_a, task_a) in enumerate(plan):
+            end_a = to_minutes(slot_a) + task_a.duration_minutes
+            for slot_b, task_b in plan[i + 1:]:
+                if to_minutes(slot_b) < end_a:
+                    warnings.append(
+                        f"CONFLICT: {task_a.name} and {task_b.name} overlap at {slot_b}"
+                    )
+        return warnings
+
+    def explain(self, today: date | None = None) -> str:
         """Return a human-readable summary of the generated plan, including any skipped tasks."""
-        plan = self.generate_plan()
+        plan = self.generate_plan(today)
         if not plan:
             return "No tasks could be scheduled within the available time."
 
