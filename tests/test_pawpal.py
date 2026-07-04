@@ -24,7 +24,7 @@ def test_task_completed_can_be_set():
     task = Task(name="Feeding", duration_minutes=10, priority=Priority.HIGH, category="nutrition")
 
     assert task.completed is False
-    task.completed = True
+    task.mark_complete()
     assert task.completed is True
 
 

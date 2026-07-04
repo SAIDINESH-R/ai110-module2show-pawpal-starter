@@ -26,6 +26,10 @@ class Task:
     completed: bool = False
     repeat_day: int = -1  # 0=Mon … 6=Sun, -1=not set
 
+    def mark_complete(self) -> None:
+        """Mark this task as completed."""
+        self.completed = True
+
     def is_due_today(self, today: date | None = None) -> bool:
         """Return True if this task should appear in today's schedule."""
         weekday = (today or date.today()).weekday()

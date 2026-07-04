@@ -1,23 +1,25 @@
 classDiagram
-    %% Replace the placeholders below with your actual classes, attributes, methods, and relationships.
-    %% Keep this file updated so it matches your final implementation.
-
-classDiagram
     Owner <.. Scheduler
     Pet <.. Scheduler
     Task <.. Scheduler
     Priority <.. Task
+    Task <.. Pet
 
     class Owner{
         +String name
         +int available_minutes
         +int day_start_hour
+        +list pets
+        +add_pet()
+        +all_tasks()
     }
     class Pet{
         +String name
         +String species
         +String breed
         +float age_years
+        +list tasks
+        +add_task()
     }
     class Task{
         +String name
@@ -25,18 +27,27 @@ classDiagram
         +Priority priority
         +String category
         +String notes
+        +String time
+        +String frequency
+        +bool completed
+        +int repeat_day
+        +mark_complete()
+        +is_due_today()
     }
     class Scheduler{
         +Owner owner
-        +Pet pet
-        +list tasks
-        +add_task()
-        +remove_task()
+        +add_task(task, pet)
+        +remove_task(name, pet)
         +generate_plan()
         +explain()
+        +tasks_by_category()
+        +is_overbooked()
+        +conflicts()
+        +_all_tasks()
     }
     class Priority{
         HIGH
         MEDIUM
         LOW
+        +order()
     }
