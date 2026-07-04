@@ -7,6 +7,8 @@ st.title("🐾 PawPal+")
 # ── session state bootstrap ───────────────────────────────────────────────────
 if "owner" not in st.session_state:
     st.session_state.owner = None
+if "scheduler" not in st.session_state:
+    st.session_state.scheduler = None
 
 # ── 1. Owner setup ────────────────────────────────────────────────────────────
 st.header("1. Owner Info")
@@ -25,6 +27,7 @@ with st.form("owner_form"):
             available_minutes=int(available_minutes),
             day_start_hour=int(day_start_hour),
         )
+        st.session_state.scheduler = Scheduler(owner=st.session_state.owner)
         st.success(f"Owner '{owner_name}' saved.")
 
 if st.session_state.owner is None:
@@ -32,15 +35,16 @@ if st.session_state.owner is None:
     st.stop()
 
 owner: Owner = st.session_state.owner
+scheduler: Scheduler = st.session_state.scheduler
 
 # ── 2. Add a pet ──────────────────────────────────────────────────────────────
 st.header("2. Add a Pet")
 
 with st.form("pet_form"):
-    pet_name   = st.text_input("Pet name", value="Biscuit")
-    species    = st.selectbox("Species", ["dog", "cat", "bird", "rabbit", "other"])
-    breed      = st.text_input("Breed", value="Golden Retriever")
-    age_years  = st.number_input("Age (years)", min_value=0.0, max_value=30.0, value=3.0, step=0.5)
+    pet_name  = st.text_input("Pet name", value="Biscuit")
+    species   = st.selectbox("Species", ["dog", "cat", "bird", "rabbit", "other"])
+    breed     = st.text_input("Breed", value="Golden Retriever")
+    age_years = st.number_input("Age (years)", min_value=0.0, max_value=30.0, value=3.0, step=0.5)
 
     if st.form_submit_button("Add Pet"):
         new_pet = Pet(name=pet_name, species=species, breed=breed, age_years=float(age_years))
@@ -76,7 +80,7 @@ with st.form("task_form"):
             notes=notes,
             time=task_time,
         )
-        target_pet.add_task(new_task)
+        scheduler.add_task(new_task, target_pet)
         st.success(f"Task '{task_name}' added to {target_pet_name}.")
 
 # ── Current task summary ──────────────────────────────────────────────────────
@@ -93,26 +97,37 @@ for pet in owner.pets:
 # ── 4. Generate schedule ──────────────────────────────────────────────────────
 st.header("4. Generate Schedule")
 
-selected_pet_name = st.selectbox("Generate plan for", pet_names)
-
 if st.button("Generate Schedule"):
-    selected_pet = next(p for p in owner.pets if p.name == selected_pet_name)
-
-    if not selected_pet.tasks:
-        st.warning(f"{selected_pet.name} has no tasks yet. Add some above.")
+    all_tasks = scheduler._all_tasks()
+    if not all_tasks:
+        st.warning("No tasks added yet. Add some above.")
     else:
-        scheduler = Scheduler(owner=owner, pet=selected_pet)
+        if scheduler.is_overbooked():
+            total = sum(t.duration_minutes for t in all_tasks if not t.completed)
+            st.warning(
+                f"⚠️ {total} min of tasks but only {owner.available_minutes} min available "
+                "— lowest-priority tasks will be skipped."
+            )
+
         plan = scheduler.generate_plan()
 
-        st.subheader(f"Daily Plan for {selected_pet.name}")
+        conflicts = scheduler.conflicts(plan)
+        for warning in conflicts:
+            st.error(warning)
+
+        st.subheader(f"Daily Plan — {owner.name}'s Pets")
+        priority_badge = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
         if plan:
             for slot, task in plan:
-                priority_color = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
-                badge = priority_color.get(task.priority.value.upper(), "")
+                badge = priority_badge.get(task.priority.value.upper(), "")
+                pet_label = next(
+                    (p.name for p in owner.pets if task in p.tasks), "?"
+                )
                 st.markdown(
-                    f"**{slot}** — {task.name} ({task.duration_minutes} min) "
+                    f"**{slot}** — [{pet_label}] {task.name} ({task.duration_minutes} min) "
                     f"{badge} `{task.priority.value.upper()}`"
                     + (f"\n> {task.notes}" if task.notes else "")
                 )
+
         st.divider()
         st.text(scheduler.explain())
