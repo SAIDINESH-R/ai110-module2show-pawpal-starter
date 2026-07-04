@@ -88,3 +88,13 @@ print(scheduler.explain())
 next_slot = scheduler.next_available_slot(plan)
 print(f"Next available slot: {next_slot}")
 print("=" * 55)
+
+# ── Persistence demo ──────────────────────────────────────────────────────────
+owner.save_to_json("pawpal_save.json")
+print("\nSaved to pawpal_save.json")
+
+loaded = Owner.load_from_json("pawpal_save.json")
+print(f"Loaded owner: {loaded.name} ({loaded.available_minutes} min available)")
+for pet in loaded.pets:
+    task_names = ", ".join(t.name for t in pet.tasks)
+    print(f"  {pet.name} ({pet.species}): {task_names}")

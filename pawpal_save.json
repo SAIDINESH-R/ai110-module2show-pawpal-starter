@@ -1,0 +1,111 @@
+{
+  "name": "Alex",
+  "available_minutes": 120,
+  "day_start_hour": 8,
+  "pets": [
+    {
+      "name": "Biscuit",
+      "species": "dog",
+      "breed": "Golden Retriever",
+      "age_years": 3.0,
+      "tasks": [
+        {
+          "name": "Morning Walk",
+          "duration_minutes": 30,
+          "priority": "HIGH",
+          "category": "exercise",
+          "notes": "go to the park",
+          "time": "08:00",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Feeding",
+          "duration_minutes": 10,
+          "priority": "HIGH",
+          "category": "nutrition",
+          "notes": "",
+          "time": "08:30",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Flea Medicine",
+          "duration_minutes": 5,
+          "priority": "MEDIUM",
+          "category": "health",
+          "notes": "apply between shoulder blades",
+          "time": "09:00",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Grooming",
+          "duration_minutes": 40,
+          "priority": "LOW",
+          "category": "grooming",
+          "notes": "",
+          "time": "09:30",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        }
+      ]
+    },
+    {
+      "name": "Whiskers",
+      "species": "cat",
+      "breed": "Siamese",
+      "age_years": 5.0,
+      "tasks": [
+        {
+          "name": "Feeding",
+          "duration_minutes": 10,
+          "priority": "HIGH",
+          "category": "nutrition",
+          "notes": "",
+          "time": "08:00",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Litter Box Cleaning",
+          "duration_minutes": 10,
+          "priority": "MEDIUM",
+          "category": "hygiene",
+          "notes": "",
+          "time": "08:15",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Playtime",
+          "duration_minutes": 20,
+          "priority": "MEDIUM",
+          "category": "enrichment",
+          "notes": "use feather wand",
+          "time": "09:00",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        },
+        {
+          "name": "Brushing",
+          "duration_minutes": 15,
+          "priority": "LOW",
+          "category": "grooming",
+          "notes": "",
+          "time": "09:30",
+          "frequency": "once",
+          "completed": false,
+          "repeat_day": -1
+        }
+      ]
+    }
+  ]
+}

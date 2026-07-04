@@ -1,4 +1,5 @@
 from __future__ import annotations
+import json
 from dataclasses import dataclass, field
 from datetime import date, time as Time
 from enum import Enum
@@ -69,6 +70,67 @@ class Owner:
     def all_tasks(self) -> list[Task]:
         """Return a flat list of every task across all owned pets."""
         return [task for pet in self.pets for task in pet.tasks]
+
+    def save_to_json(self, filepath: str) -> None:
+        """Serialize the owner, all pets, and all tasks to a JSON file."""
+        data = {
+            "name": self.name,
+            "available_minutes": self.available_minutes,
+            "day_start_hour": self.day_start_hour,
+            "pets": [
+                {
+                    "name": pet.name,
+                    "species": pet.species,
+                    "breed": pet.breed,
+                    "age_years": pet.age_years,
+                    "tasks": [
+                        {
+                            "name": t.name,
+                            "duration_minutes": t.duration_minutes,
+                            "priority": t.priority.name,
+                            "category": t.category,
+                            "notes": t.notes,
+                            "time": t.time,
+                            "frequency": t.frequency,
+                            "completed": t.completed,
+                            "repeat_day": t.repeat_day,
+                        }
+                        for t in pet.tasks
+                    ],
+                }
+                for pet in self.pets
+            ],
+        }
+        with open(filepath, "w") as f:
+            json.dump(data, f, indent=2)
+
+    @classmethod
+    def load_from_json(cls, filepath: str) -> Owner:
+        """Reconstruct an Owner with all pets and tasks from a JSON file."""
+        with open(filepath) as f:
+            data = json.load(f)
+        owner = cls(
+            name=data["name"],
+            available_minutes=data["available_minutes"],
+            day_start_hour=data["day_start_hour"],
+        )
+        for pd in data["pets"]:
+            pet = Pet(name=pd["name"], species=pd["species"],
+                      breed=pd["breed"], age_years=pd["age_years"])
+            for td in pd["tasks"]:
+                pet.add_task(Task(
+                    name=td["name"],
+                    duration_minutes=td["duration_minutes"],
+                    priority=Priority[td["priority"]],
+                    category=td["category"],
+                    notes=td.get("notes", ""),
+                    time=td.get("time", "08:00"),
+                    frequency=td.get("frequency", "once"),
+                    completed=td.get("completed", False),
+                    repeat_day=td.get("repeat_day", -1),
+                ))
+            owner.add_pet(pet)
+        return owner
 
 
 class Scheduler:
